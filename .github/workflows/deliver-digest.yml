@@ -29,7 +29,7 @@ jobs:
           cat > ~/.follow-builders/config.json << EOF
           {
             "platform": "other",
-            "language": "bilingual",
+            "language": "zh",
             "timezone": "Asia/Shanghai",
             "frequency": "daily",
             "deliveryTime": "09:00",
