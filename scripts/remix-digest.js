@@ -140,7 +140,7 @@ https://x.com/handle/status/123
 }
 
 async function callOpenAI(apiKey, systemPrompt, userPrompt) {
-  const model = process.env.LLM_MODEL || 'gpt-4o-mini';
+  const model = process.env.LLM_MODEL || 'gpt-5.4-nano';
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
