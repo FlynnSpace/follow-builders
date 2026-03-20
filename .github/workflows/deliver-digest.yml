@@ -43,6 +43,10 @@ jobs:
           echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}" > ~/.follow-builders/.env
 
       - name: Prepare and deliver digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: |
           cd scripts
           DIGEST_JSON=$(node prepare-digest.js 2>/dev/null)
@@ -50,9 +54,19 @@ jobs:
             echo "Failed to fetch feed data"
             exit 1
           fi
-          echo "$DIGEST_JSON" | node format-digest.js > /tmp/fb-digest.txt
+
+          # Use LLM remix if API key available, otherwise basic formatting
+          if [ -n "$OPENAI_API_KEY" ] || [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "Using LLM-powered remix..."
+            echo "$DIGEST_JSON" | node remix-digest.js > /tmp/fb-digest.txt
+          else
+            echo "No LLM API key found, using basic formatting..."
+            echo "$DIGEST_JSON" | node format-digest.js > /tmp/fb-digest.txt
+          fi
+
           if [ ! -s /tmp/fb-digest.txt ]; then
             echo "No content to deliver"
             exit 0
           fi
+          cat /tmp/fb-digest.txt
           node deliver.js --file /tmp/fb-digest.txt
