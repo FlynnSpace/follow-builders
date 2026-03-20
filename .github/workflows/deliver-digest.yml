@@ -1,0 +1,58 @@
+name: Deliver Digest
+
+on:
+  schedule:
+    # 9:00 AM China time (UTC+8) = 1:00 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd scripts && npm install
+
+      - name: Setup user config
+        env:
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          mkdir -p ~/.follow-builders
+          cat > ~/.follow-builders/config.json << EOF
+          {
+            "platform": "other",
+            "language": "bilingual",
+            "timezone": "Asia/Shanghai",
+            "frequency": "daily",
+            "deliveryTime": "09:00",
+            "delivery": {
+              "method": "telegram",
+              "chatId": "${TELEGRAM_CHAT_ID}"
+            },
+            "onboardingComplete": true
+          }
+          EOF
+          echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}" > ~/.follow-builders/.env
+
+      - name: Prepare and deliver digest
+        run: |
+          cd scripts
+          DIGEST_JSON=$(node prepare-digest.js 2>/dev/null)
+          if [ -z "$DIGEST_JSON" ]; then
+            echo "Failed to fetch feed data"
+            exit 1
+          fi
+          echo "$DIGEST_JSON" | node format-digest.js > /tmp/fb-digest.txt
+          if [ ! -s /tmp/fb-digest.txt ]; then
+            echo "No content to deliver"
+            exit 0
+          fi
+          node deliver.js --file /tmp/fb-digest.txt
