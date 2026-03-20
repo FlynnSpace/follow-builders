@@ -90,7 +90,6 @@ async function sendTelegram(text, botToken, chatId) {
         body: JSON.stringify({
           chat_id: chatId,
           text: chunk,
-          parse_mode: 'Markdown',
           disable_web_page_preview: true
         })
       }
@@ -98,23 +97,7 @@ async function sendTelegram(text, botToken, chatId) {
 
     if (!res.ok) {
       const err = await res.json();
-      // If Markdown parsing fails, retry without parse_mode
-      if (err.description && err.description.includes("can't parse")) {
-        await fetch(
-          `https://api.telegram.org/bot${botToken}/sendMessage`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: chunk,
-              disable_web_page_preview: true
-            })
-          }
-        );
-      } else {
-        throw new Error(`Telegram API error: ${err.description}`);
-      }
+      throw new Error(`Telegram API error: ${err.description}`);
     }
 
     // Small delay between chunks to avoid rate limiting
