@@ -82,7 +82,7 @@ function buildSystemPrompt(data) {
 function buildLanguageDirective(language) {
   switch (language) {
     case 'bilingual':
-      return 'BILINGUAL MODE. For EVERY builder and EVERY podcast, output the English paragraph FIRST, then IMMEDIATELY output the Chinese translation below it, before moving to the next item. Do NOT output all English first then all Chinese. Interleave them paragraph by paragraph.';
+      return 'BILINGUAL MODE. For EVERY builder and EVERY podcast, output the Chinese paragraph FIRST, then IMMEDIATELY output the English version below it, before moving to the next item. Chinese comes first, English second. Do NOT output all Chinese first then all English. Interleave them paragraph by paragraph.';
     case 'zh':
       return 'CHINESE ONLY. Output the entire digest in Chinese (simplified). Keep technical terms (AI, LLM, GPU, API, etc.) and proper nouns in English.';
     default:
@@ -111,18 +111,18 @@ function buildUserPrompt(data) {
   }).join('\n\n');
 
   const langExample = data.config.language === 'bilingual'
-    ? `\n\nBILINGUAL FORMAT EXAMPLE:
-▸ Builder Name — role
-English summary paragraph here...
+    ? `\n\nBILINGUAL FORMAT EXAMPLE (Chinese FIRST, then English):
+▸ Builder Name — 职位
+中文摘要段落在这里...
 https://x.com/handle/status/123
 
 Builder Name — role
-中文翻译段落在这里...
+English summary paragraph here...
 https://x.com/handle/status/123
 
 ---
 
-(Then next builder, same pattern. English first, Chinese immediately below, for EVERY builder.)\n`
+(Then next builder, same pattern. Chinese FIRST, English below, for EVERY builder and podcast.)\n`
     : '';
 
   return [
