@@ -55,9 +55,13 @@ async function main() {
 
 function buildSystemPrompt(data) {
   const { prompts, config } = data;
+
+  const langDirective = buildLanguageDirective(config.language);
+
   return [
     'You are an AI content curator generating a daily digest of AI builder activity.',
-    'Follow these instructions precisely.',
+    '',
+    `CRITICAL — OUTPUT LANGUAGE: ${langDirective}`,
     '',
     '## Tweet Summarization Rules',
     prompts.summarize_tweets,
@@ -69,9 +73,21 @@ function buildSystemPrompt(data) {
     prompts.digest_intro,
     '',
     '## Language & Translation Rules',
-    `User language setting: "${config.language}"`,
-    prompts.translate
+    prompts.translate,
+    '',
+    `REMINDER — You MUST output the digest in "${config.language}" mode. ${langDirective}`
   ].join('\n');
+}
+
+function buildLanguageDirective(language) {
+  switch (language) {
+    case 'bilingual':
+      return 'BILINGUAL MODE. For EVERY builder and EVERY podcast, output the English paragraph FIRST, then IMMEDIATELY output the Chinese translation below it, before moving to the next item. Do NOT output all English first then all Chinese. Interleave them paragraph by paragraph.';
+    case 'zh':
+      return 'CHINESE ONLY. Output the entire digest in Chinese (simplified). Keep technical terms (AI, LLM, GPU, API, etc.) and proper nouns in English.';
+    default:
+      return 'ENGLISH ONLY. Output the entire digest in English.';
+  }
 }
 
 function buildUserPrompt(data) {
@@ -94,10 +110,25 @@ function buildUserPrompt(data) {
     ].join('\n');
   }).join('\n\n');
 
+  const langExample = data.config.language === 'bilingual'
+    ? `\n\nBILINGUAL FORMAT EXAMPLE:
+▸ Builder Name — role
+English summary paragraph here...
+https://x.com/handle/status/123
+
+Builder Name — role
+中文翻译段落在这里...
+https://x.com/handle/status/123
+
+---
+
+(Then next builder, same pattern. English first, Chinese immediately below, for EVERY builder.)\n`
+    : '';
+
   return [
     `Generate the digest for: ${date}`,
-    `Language: ${data.config.language}`,
-    '',
+    `Language mode: ${data.config.language}`,
+    langExample,
     `## X/Twitter Content (${data.stats.xBuilders} builders, ${data.stats.totalTweets} tweets)`,
     '',
     tweetBlocks,
@@ -123,7 +154,7 @@ async function callOpenAI(apiKey, systemPrompt, userPrompt) {
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 8000
+      max_tokens: 16000
     })
   });
 
@@ -147,7 +178,7 @@ async function callAnthropic(apiKey, systemPrompt, userPrompt) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: systemPrompt,
       messages: [
         { role: 'user', content: userPrompt }
